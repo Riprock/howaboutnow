@@ -1,6 +1,6 @@
 """Are all those things the way I want them yet? How about now?"""
 
-from threading import Thread, Timer
+from threading import Thread, Timer, Lock
 from Queue import Queue
 
 __version__ = '1.1'
@@ -45,6 +45,7 @@ class AndNow(object):
         self.started = False
         self.checker_threads = []
         self.result_handlers = []
+        self.passed_count_lock = Lock()
 
     def start(self):
         """Kick off the cycle of asynchronous rechecking."""
@@ -76,7 +77,9 @@ class AndNow(object):
             result = self.fetcher(*arg_set[0], **arg_set[1])
             passed = self.checker(result)
             if passed:
+                self.passed_count_lock.acquire()
                 self.passed_count += 1
+                self.passed_count_lock.release()
             else:
                 if self.repeat_delay:
                     Timer(self.repeat_delay, self.fetch_queue.put,
